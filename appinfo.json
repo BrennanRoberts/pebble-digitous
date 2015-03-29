@@ -1,0 +1,19 @@
+{
+  "uuid": "b099e53f-8dfc-43ea-882a-f2ad683dc44a",
+  "shortName": "analogous",
+  "longName": "analogous",
+  "companyName": "MakeAwesomeHappen",
+  "versionCode": 1,
+  "versionLabel": "1.0",
+  "sdkVersion": "3",
+  "targetPlatforms": ["basalt"],
+  "watchapp": {
+    "watchface": false
+  },
+  "appKeys": {
+    "dummy": 0
+  },
+  "resources": {
+    "media": []
+  }
+}
