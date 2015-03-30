@@ -8,12 +8,18 @@
   "sdkVersion": "3",
   "targetPlatforms": ["basalt"],
   "watchapp": {
-    "watchface": false
+    "watchface": true
   },
   "appKeys": {
     "dummy": 0
   },
   "resources": {
-    "media": []
+    "media": [
+      {
+        "name": "FONT_OSP_DIN_60",
+        "file": "OSP-DIN.ttf",
+        "type": "font"
+      }
+    ]
   }
 }

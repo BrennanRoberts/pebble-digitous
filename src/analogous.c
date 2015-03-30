@@ -1,39 +1,34 @@
 #include <pebble.h>
 
 static Window *window;
+static TextLayer *s_text_layer;
 static Layer *s_hands_layer;
 static Layer *s_bg_layer;
-static GPath *s_minute_path;
-static GPath *s_hour_path;
 
-static const GPathInfo HOUR_HAND_POINTS = {
-  4,
-  (GPoint []) {
-    { -3, 10 },
-    { 3, 10 },
-    { 3, -40 },
-    { -3, -40 }
-  }
-};
+static void update_text_layer() {
+  time_t now = time(NULL);
+  struct tm *tick_time = localtime(&now);
 
-static const GPathInfo MINUTE_HAND_POINTS = {
-  4,
-  (GPoint []) {
-    { -3, 10 },
-    { 3, 10 },
-    { 3, -70 },
-    { -3, -70 }
+  static char buffer[] = "00 00";
+
+  if(clock_is_24h_style() == true) {
+    strftime(buffer, sizeof("00 00"), "%H %M", tick_time);
+  } else {
+    strftime(buffer, sizeof("00 00"), "%I %M", tick_time);
   }
-};
+
+  text_layer_set_text(s_text_layer, buffer);
+}
 
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
   layer_mark_dirty(s_hands_layer);
+  update_text_layer();
 }
 
 static void bg_layer_update_proc(Layer *layer, GContext *ctx) {
+  graphics_context_set_antialiased(ctx, false);
   GRect bounds = layer_get_bounds(layer);
   GPoint center = grect_center_point(&bounds);
-  GPoint tick;
   int32_t tick_angle;
 
   // minute ticks
@@ -73,19 +68,10 @@ static void hands_layer_update_proc(Layer *layer, GContext *ctx) {
   GPoint center = grect_center_point(&bounds);
   int16_t second_hand_length = bounds.size.w / 2;
   int16_t second_hand_behind_length = -bounds.size.w / 20;
-  GColor second_hand_color = GColorIcterine;
+  GColor second_hand_color = GColorMediumAquamarine;
 
   time_t now = time(NULL);
   struct tm *t = localtime(&now);
-
-  graphics_context_set_fill_color(ctx, GColorWhite);
-  gpath_rotate_to(s_minute_path, TRIG_MAX_ANGLE * t->tm_min / 60);
-  gpath_draw_filled(ctx, s_minute_path);
-  gpath_draw_outline(ctx, s_minute_path);
-
-  gpath_rotate_to(s_hour_path, (TRIG_MAX_ANGLE * (((t->tm_hour % 12) * 6) + (t->tm_min / 10))) / (12 * 6));
-  gpath_draw_filled(ctx, s_hour_path);
-  gpath_draw_outline(ctx, s_hour_path);
 
   int32_t second_angle = TRIG_MAX_ANGLE * t->tm_sec / 60;
   GPoint second_hand = {
@@ -132,6 +118,17 @@ static void window_load(Window *window) {
 
   s_hands_layer = layer_create(bounds);
   layer_set_update_proc(s_hands_layer, hands_layer_update_proc);
+
+  GFont custom_font = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_OSP_DIN_60));
+
+  s_text_layer = text_layer_create(GRect(bounds.origin.x, (bounds.size.h / 2) - 38, bounds.size.w, bounds.size.h));
+  text_layer_set_font(s_text_layer, custom_font);
+  text_layer_set_text_color(s_text_layer, GColorDarkGray);
+  text_layer_set_background_color(s_text_layer, GColorClear);
+  text_layer_set_text_alignment(s_text_layer, GTextAlignmentCenter);
+  update_text_layer();
+
+  layer_add_child(window_layer, text_layer_get_layer(s_text_layer));
   layer_add_child(window_layer, s_hands_layer);
 }
 
@@ -151,20 +148,13 @@ static void init(void) {
   GRect bounds = layer_get_bounds(window_layer);
   GPoint center = grect_center_point(&bounds);
 
-  s_minute_path = gpath_create(&MINUTE_HAND_POINTS);
-  gpath_move_to(s_minute_path, center);
-
-  s_hour_path = gpath_create(&HOUR_HAND_POINTS);
-  gpath_move_to(s_hour_path, center);
-
   tick_timer_service_subscribe(SECOND_UNIT, tick_handler);
   const bool animated = true;
   window_stack_push(window, animated);
 }
 
 static void deinit(void) {
-  gpath_destroy(s_minute_path);
-  gpath_destroy(s_hour_path);
+  text_layer_destroy(s_text_layer);
   tick_timer_service_unsubscribe();
   window_destroy(window);
 }
@@ -177,3 +167,4 @@ int main(void) {
   app_event_loop();
   deinit();
 }
+
